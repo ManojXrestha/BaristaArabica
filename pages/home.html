@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arabica Brew | Home</title>
+    
+    <!-- Google Fonts: Inter for that clean, ultra-bold Brutalist look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../images/logo.png" />
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#050505',      // Deep cinematic black
+                            dark: '#0A0A0A',
+                            accent: '#FF3E15',  // Arpeggio Signature Orange/Red
+                            textGray: '#888888' // Subdued text
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Inter"', 'sans-serif'],
+                        serif: ['"Georgia"', 'serif'] // For quotation marks
+                    },
+                    letterSpacing: {
+                        tighter: '-0.04em',
+                        tightest: '-0.06em'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React, ReactDOM, Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { background-color: #050505; color: #F4F4F4; -webkit-font-smoothing: antialiased; margin: 0; overflow-x: hidden; zoom: 75%; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #FF3E15; }
+
+        /* Hide scrollbar for the horizontal galleries */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* --- BACKGROUND ANIMATIONS --- */
+        .bg-noise {
+            position: fixed;
+            inset: 0; /* better than top/left/width/height */
+            pointer-events: none;
+            z-index: 9999; /* ensure always on top */
+            opacity: 0.04;
+
+            background-image: url("data:image/svg+xml,...");
+            background-repeat: repeat;
+        }
+
+        @keyframes orbFloat1 { 
+            0% { transform: translate(0, 0) scale(1); } 
+            33% { transform: translate(5vw, 10vh) scale(1.1); } 
+            66% { transform: translate(-5vw, 5vh) scale(0.9); } 
+            100% { transform: translate(0, 0) scale(1); } 
+        }
+        @keyframes orbFloat2 { 
+            0% { transform: translate(0, 0) scale(1); } 
+            50% { transform: translate(-10vw, -10vh) scale(1.2); } 
+            100% { transform: translate(0, 0) scale(1); } 
+        }
+        .orb { position: fixed; border-radius: 50%; filter: blur(150px); z-index: -1; opacity: 0.3; }
+        .orb-1 { width: 50vw; height: 50vw; background: #FF3E15; top: -10%; left: -10%; animation: orbFloat1 20s infinite ease-in-out; }
+        .orb-2 { width: 60vw; height: 60vw; background: #8B6A47; bottom: -20%; right: -10%; animation: orbFloat2 25s infinite ease-in-out; }
+
+        /* --- LAYOUT ANIMATIONS --- */
+        .reveal-up { opacity: 0; transform: translateY(80px); transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal-up.active { opacity: 1; transform: translateY(0); }
+        .dot { display: inline-block; width: 0.15em; height: 0.15em; background-color: #FF3E15; border-radius: 50%; margin-left: 2px; }
+
+        /* Automatic Marquee for Feedback Section */
+        @keyframes scroll-left {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(calc(-50% - 12px)); }
+        }
+        .animate-scroll-left { animation: scroll-left 40s linear infinite; }
+        .mask-edges {
+            -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+            mask-image: linear-gradient(to right, black 80%, transparent 100%);
+        }
+
+        /* Typography Effects */
+        .text-outline { -webkit-text-stroke: 1px rgba(255,255,255,0.2); color: transparent; transition: all 0.5s ease; }
+        .group:hover .text-outline { -webkit-text-stroke: 1px #FF3E15; color: #FF3E15; }
+        .smooth-hover { transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        /* Add these inside the existing <style> tag in home.html */
+
+        .mask-vertical {
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+            mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+        }
+
+        @keyframes scroll-up {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+        @keyframes scroll-down {
+            0% { transform: translateY(-50%); }
+            100% { transform: translateY(0); }
+        }
+
+        .animate-scroll-up { animation: scroll-up 35s linear infinite; }
+        .animate-scroll-down { animation: scroll-down 40s linear infinite; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- CUSTOM HOOK FOR SCROLL REVEAL ---
+        const useReveal = () => {
+            const ref = useRef(null);
+            useEffect(() => {
+                const observer = new IntersectionObserver(([entry]) => {
+                    if (entry.isIntersecting) entry.target.classList.add('active');
+                }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+                if (ref.current) observer.observe(ref.current);
+                return () => observer.disconnect();
+            }, []);
+            return ref;
+        };
+
+        const Reveal = ({ children, className = "", delay = "0s" }) => {
+            const ref = useReveal();
+            return <div ref={ref} className={`reveal-up ${className}`} style={{ transitionDelay: delay }}>{children}</div>;
+        };
+
+        // --- COMPONENTS ---
+        const Navbar = () => (
+            <nav className="absolute w-full z-50 top-0 py-6 px-8 flex justify-between items-center text-white blend-difference">
+                <div className="flex gap-8 text-xs uppercase tracking-widest font-semibold hidden md:flex">
+                    <a href="home.html" className="hover:text-brand-accent transition-colors">Home</a>
+                    <a href="course.html" className="hover:text-brand-accent transition-colors">Courses</a>
+                </div>
+                <div className="cursor-pointer flex items-center">
+                    <img src="../images/logo.png" alt="Arabica Brew logo" className="h-32 w-auto max-h-full object-contain" />
+                </div>
+                <div className="flex gap-8 text-xs uppercase tracking-widest font-semibold hidden md:flex">
+                    <a href="aboutus.html" className="hover:text-brand-accent transition-colors">About</a>
+                    <a href="contact.html" className="hover:text-brand-accent transition-colors">Contact</a>
+                </div>
+            </nav>
+        );
+
+                const AnimatedVerticalGallery = () => {
+            const col1 = [
+                { url: "../images/1.jpg", height: "h-[300px]" },
+                { url: "../images/2.jpg", height: "h-[450px]" },
+                { url: "../images/3.jpg", height: "h-[250px]" },
+                { url: "../images/4.jpg", height: "h-[350px]" },
+                { url: "../images/5.jpg", height: "h-[280px]" }
+            ];
+            const col2 = [
+                { url: "../images/6.jpg", height: "h-[400px]" },
+                { url: "../images/7.jpg", height: "h-[250px]" },
+                { url: "../images/8.jpg", height: "h-[350px]" },
+                { url: "../images/9.jpg", height: "h-[450px]" },
+                { url: "../images/10.jpg", height: "h-[300px]" }
+            ];
+            const col3 = [
+                { url: "../images/11.jpg", height: "h-[300px]" },
+                { url: "../images/12.jpg", height: "h-[400px]" },
+                { url: "../images/13.jpg", height: "h-[450px]" },
+                { url: "../images/14.jpg", height: "h-[250px]" },
+                { url: "../images/15.jpg", height: "h-[350px]" }
+            ];
+
+            const ImageSet = ({ images }) => (
+                <div className="flex flex-col gap-4 md:gap-6 w-full pb-4 md:pb-6">
+                    {images.map((img, i) => (
+                        <div key={i} className={`relative w-full ${img.height} rounded-[1.5rem] overflow-hidden bg-brand-dark group border border-white/10 shrink-0 cursor-pointer`}>
+                            <img src={img.url} alt="Gallery image" className="w-full h-full object-cover transition-transform duration-[800ms] group-hover:scale-110 grayscale-[30%] group-hover:grayscale-0" />
+                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500"></div>
+                        </div>
+                    ))}
+                </div>
+            );
+
+            return (
+                <section className="py-5 relative z-10 overflow-hidden">
+                    <div className="px-8 md:px-16 max-w-[1600px] mx-auto mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                        <Reveal>
+                            <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-white text-center">
+                                The Craft in Motion<span className="dot"></span>
+                            </h2>
+                        </Reveal>
+                        <Reveal delay="0.2s">
+                            <div className="flex items-center gap-4 text-brand-textGray uppercase tracking-widest text-xs font-bold">
+                                <span>Gallery</span>
+                                <div className="w-12 h-[1px] bg-brand-textGray"></div>
+                                <span>↓</span>
+                            </div>
+                        </Reveal>
+                    </div>
+                    
+                    <div className="px-4 md:px-16 max-w-[1600px] mx-auto h-[60vh] md:h-[80vh] mask-vertical overflow-hidden">
+                        <Reveal delay="0.3s" className="h-full">
+                            <div className="flex gap-4 md:gap-6 h-full w-full justify-center">
+                                
+                                {/* Column 1: Scrolls Up */}
+                                <div className="flex-1 overflow-hidden relative h-full">
+                                    <div className="flex flex-col w-full animate-scroll-up hover:[animation-play-state:paused]" style={{ animationDuration: '35s' }}>
+                                        <ImageSet images={col1} />
+                                        <ImageSet images={col1} />
+                                    </div>
+                                </div>
+
+                                {/* Column 2: Scrolls Down */}
+                                <div className="flex-1 overflow-hidden relative h-full">
+                                    <div className="flex flex-col w-full animate-scroll-down hover:[animation-play-state:paused]" style={{ animationDuration: '45s' }}>
+                                        <ImageSet images={col2} />
+                                        <ImageSet images={col2} />
+                                    </div>
+                                </div>
+
+                                {/* Column 3: Scrolls Up */}
+                                <div className="flex-1 overflow-hidden relative h-full">
+                                    <div className="flex flex-col w-full animate-scroll-up hover:[animation-play-state:paused]" style={{ animationDuration: '40s' }}>
+                                        <ImageSet images={col3} />
+                                        <ImageSet images={col3} />
+                                    </div>
+                                </div>
+
+                            </div>
+                        </Reveal>
+                    </div>
+                </section>
+            );
+        };
+
+        // --- TESTIMONIALS SECTION ---
+        const Testimonials = () => {
+            const baseFeedbacks = [
+                {
+                    quote: "I had an amazing experience at the Barista Training Center! The instructors were incredibly knowledgeable, friendly, and passionate about coffee. The training was hands-on and covered everything from espresso techniques and milk frothing to latte art and customer service.",
+                    name: "Aasha Subedi",
+                    role: "Student",
+                    avatar: "../images/a.png"
+                },
+                {
+                    quote: "One of the best place for barrista classes and training with good guidance and polite teachers ….. I personally recommend this place for fun and skillful training.",
+                    name: "Suchita Kadel",
+                    role: "Student",
+                    avatar: "../images/b.png"
+                },
+                {
+                    quote: "Here's friendly mentors and environment, best in providing practical skills and knowledge hoping for theirs success and great future in the related field.",
+                    name: "Shiva Thakuri",
+                    role: "Student",
+                    avatar: "../images/c.png"
+                },
+                {
+                    quote: "It's really amazing place. Where you can gain knowledge and make your skill better. It's really pleasure to study and gain knowledge for coffee making. Where the teacher are also really friendly and I would suggest you to join the classes too.",
+                    name: "Ak47gaming_yt",
+                    role: "Student",
+                    avatar: "../images/d.png"
+                }
+            ];
+
+            const scrollingFeedbacks = [...baseFeedbacks, ...baseFeedbacks, ...baseFeedbacks, ...baseFeedbacks];
+
+            return (
+                <section className="py-32 relative z-10 overflow-hidden">
+                    <div className="mb-16">
+                        <Reveal>
+                            <h2 className="px-8 md:px-16 max-w-[1600px] mx-auto text-center text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-white mb-12">
+                                Inspiring student experiences<span className="dot"></span>
+                            </h2>
+                        </Reveal>
+
+                        <Reveal delay="0.2s">
+                            <div className="flex flex-col xl:flex-row gap-6 mt-8 relative">
+                                
+                                {/* 2. AUTOMATIC RIGHT-TO-LEFT SCROLLING CARDS */}
+                                <div className="flex-1 overflow-hidden relative w-full mask-edges xl:pl-4">
+                                    <div className="flex gap-6 w-max animate-scroll-left hover:[animation-play-state:paused] cursor-grab active:cursor-grabbing h-[550px]">
+                                        
+                                        {scrollingFeedbacks.map((item, index) => (
+                                            <div 
+                                                key={index} 
+                                                className="shrink-0 w-[350px] md:w-[420px] h-full bg-white/5 border border-white/10 backdrop-blur-md p-10 md:p-12 flex flex-col justify-between rounded-[2rem] transition-colors hover:bg-white/10"
+                                            >
+                                                <div>
+                                                    <div className="text-7xl text-red-500 font-serif leading-none mb-6">“</div>
+                                                    <p className="text-lg md:text-xl font-medium tracking-tight leading-relaxed text-white">
+                                                        {item.quote}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-5 mt-8 border-t border-white/10 pt-8">
+                                                    <img src={item.avatar} className="w-14 h-14 rounded-full object-cover grayscale opacity-80" alt={item.name} />
+                                                    <div>
+                                                        <h4 className="font-bold text-lg text-white leading-tight">{item.name}</h4>
+                                                        <p className="text-sm text-brand-textGray font-medium mt-1">
+                                                            {item.role}<br/>
+                                                            <span className="opacity-70">{item.company}</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        </Reveal>
+                    </div>
+                </section>
+            );
+        };
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            const [heroLoaded, setHeroLoaded] = useState(false);
+            useEffect(() => { setTimeout(() => setHeroLoaded(true), 100); }, []);
+
+            return (
+                <div className="relative min-h-screen font-sans selection:bg-brand-accent selection:text-white">
+                    
+                    {/* AMBIENT BACKGROUND ANIMATIONS */}
+                    <div className="bg-noise"></div>
+                    <div className="orb orb-1"></div>
+                    <div className="orb orb-2"></div>
+
+                    <Navbar />
+
+                    {/* 1. CINEMATIC HERO */}
+                    <section className="relative h-screen flex flex-col justify-center items-center overflow-hidden px-4 z-10 pt-40">
+                        <div className={`z-10 text-center transition-all duration-1000 delay-300 ${heroLoaded ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
+                            <p className="text-brand-accent font-bold uppercase tracking-widest text-sm mb-6">
+                                Arabica Brew Coffee
+                            </p>
+                            <h1 className="text-[14vw] md:text-[9vw] leading-[0.85] tracking-tightest font-black uppercase text-white mb-8">
+                                Brewing that<br/>
+                                captivates<br/>
+                                tomorrow<span className="dot"></span>
+                            </h1>
+                            <p className="text-lg md:text-xl font-medium text-brand-textGray max-w-2xl mx-auto">
+                                Perfectly aligned creative and technical expertise to increase your coffee mastery.
+                            </p>
+                        </div>
+
+                        <div className="absolute bottom-[-30px] text-brand-textGray text-xs uppercase tracking-widest font-semibold flex flex-col items-center gap-4">
+                            <span>Scroll</span>
+                            <div className="w-[1px] h-16 bg-gradient-to-b from-brand-textGray to-transparent"></div>
+                        </div>
+                    </section>
+
+                    {/* 2. INTRO STATEMENT */}
+                    <section className="py-32 px-8 md:px-16 max-w-[1600px] mx-auto relative z-10">
+                        <Reveal>
+                            <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-white mb-16">
+                                From foundation to flawless execution<span className="dot"></span>
+                            </h2>
+                        </Reveal>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+                            <Reveal delay="0.1s">
+                                <h3 className="text-2xl font-bold tracking-tight mb-4 text-white">Crafting Excellence —</h3>
+                                <p className="text-brand-textGray text-lg leading-relaxed font-medium">
+                                    From extraction strategy to execution, we create authentic barista experiences that connect with your audience and foster lasting skills.
+                                </p>
+                            </Reveal>
+                            <Reveal delay="0.2s">
+                                <h3 className="text-2xl font-bold tracking-tight mb-4 text-white">Technical Mastery —</h3>
+                                <p className="text-brand-textGray text-lg leading-relaxed font-medium">
+                                    We combine third-wave thinking with practical design to deliver solutions that enhance your workflow and drive customer engagement.
+                                </p>
+                            </Reveal>
+                        </div>
+                    </section>
+
+                    {/* GALLERY */}
+                    <AnimatedVerticalGallery />
+
+                    {/* 5. AUTO-SCROLL FEEDBACK SECTION */}
+                    <Testimonials />
+
+                    {/* 6. METRICS / STATS */}
+                    <section className="py-32 px-8 md:px-16 max-w-[1600px] mx-auto border-t border-white/10 relative z-10 text-center">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 group">
+                            <Reveal className="text-center" delay="0.0s">
+                                <p className="font-black text-6xl md:text-8xl tracking-tighter text-outline group-hover:text-outline transition-all duration-300">20+</p>
+                                <p className="text-xs font-bold uppercase tracking-widest text-brand-textGray mt-4">Batches Completed</p>
+                            </Reveal>
+                            <Reveal className="text-center" delay="0.1s">
+                                <p className="font-black text-6xl md:text-8xl tracking-tighter text-outline group-hover:text-outline transition-all duration-300">1.2k</p>
+                                <p className="text-xs font-bold uppercase tracking-widest text-brand-textGray mt-4">Students Trained</p>
+                            </Reveal>
+                            <Reveal className="text-center" delay="0.2s">
+                                <p className="font-black text-6xl md:text-8xl tracking-tighter text-brand-accent drop-shadow-[0_0_20px_rgba(255,62,21,0.5)]">98%</p>
+                                <p className="text-xs font-bold uppercase tracking-widest text-brand-textGray mt-4">Placement Rate</p>
+                            </Reveal>
+                            <Reveal className="text-center" delay="0.3s">
+                                <p className="font-black text-6xl md:text-8xl tracking-tighter text-outline group-hover:text-outline transition-all duration-300">15+</p>
+                                <p className="text-xs font-bold uppercase tracking-widest text-brand-textGray mt-4">Industry Awards</p>
+                            </Reveal>
+                        </div>
+                    </section>
+
+                    {/* 7. BIG FOOTER CTA */}
+                    <footer className="text-white pt-10 pb-10 px-8 md:px-16 flex flex-col justify-between relative z-10 bg-brand-bg/80 backdrop-blur-xl border-t border-white/10">
+                        <Reveal>
+                            <h2 className="text-[10vw] leading-[0.8] tracking-tightest font-black uppercase mb-6">
+                                We transform<br/>baristas.<br/>
+                                <span className="text-brand-accent">Your success<br/>is next.</span>
+                            </h2>
+                        </Reveal>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 border-t border-white/20 pt-12 max-w-[1600px] mx-auto w-full">
+                            <div className="col-span-1 md:col-span-2">
+                                <img src="../images/logo.png" alt="Arabica Brew logo" className="h-32 w-auto max-h-full object-contain mb-4" />
+                                <p className="text-brand-textGray text-sm font-medium max-w-sm">The premier coffee school dedicated to cultivating a new generation of skilled baristas.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-xs uppercase tracking-widest mb-6 text-white/50">Office</h3>
+                                <p className="font-medium text-sm mb-2 text-brand-textGray">Devasthal Marga, Kathmandu</p>
+                                <p className="font-medium text-sm mb-4 text-brand-textGray">Koteshwor Chowk 44600</p>
+                                <a className="font-medium text-sm hover:text-brand-accent transition-colors block mb-2">arabicabrewcoffee5@gmail.com</a>
+                                <p className="font-medium text-sm">+977 9865991279</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-xs uppercase tracking-widest mb-6 text-white/50">Social</h3>
+                                <div className="flex flex-col gap-3 font-medium text-sm">
+                                    <a href="https://www.instagram.com/arabica_brew_coffee_school/" className="hover:text-brand-accent transition-colors" target="_blank" rel="noopener noreferrer">Instagram</a>
+                                    <a href="https://www.facebook.com/arabika.bru.kaphi.skula" className="hover:text-brand-accent transition-colors" target="_blank" rel="noopener noreferrer">Facebook</a>
+                                    <a href="https://www.tiktok.com/@arabicabrewcoffeeschool" className="hover:text-brand-accent transition-colors" target="_blank" rel="noopener noreferrer">Tiktok</a>
+                                    <a href="https://www.youtube.com/@ArabicaBrewCoffeeSchool/videos" className="hover:text-brand-accent transition-colors" target="_blank" rel="noopener noreferrer">YouTube</a>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

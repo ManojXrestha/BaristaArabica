@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arabica Brew | Courses</title>
+    
+    <!-- Google Fonts: Inter for that clean, ultra-bold Brutalist look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../images/logo.png" />
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#050505',      // Deep cinematic black
+                            dark: '#0A0A0A',
+                            accent: '#FF3E15',  // Arpeggio Signature Orange/Red
+                            textGray: '#888888' // Subdued text
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Inter"', 'sans-serif'],
+                    },
+                    letterSpacing: {
+                        tighter: '-0.04em',
+                        tightest: '-0.06em'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React, ReactDOM, Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { background-color: #050505; color: #F4F4F4; -webkit-font-smoothing: antialiased; margin: 0; overflow-x: hidden; zoom: 75%; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #FF3E15; }
+
+        /* --- BACKGROUND ANIMATIONS --- */
+        .bg-noise {
+            position: fixed;
+            inset: 0; /* better than top/left/width/height */
+            pointer-events: none;
+            z-index: 9999; /* ensure always on top */
+            opacity: 0.04;
+
+            background-image: url("data:image/svg+xml,...");
+            background-repeat: repeat;
+        }
+
+        @keyframes orbFloat1 { 
+            0% { transform: translate(0, 0) scale(1); } 
+            33% { transform: translate(5vw, 10vh) scale(1.1); } 
+            66% { transform: translate(-5vw, 5vh) scale(0.9); } 
+            100% { transform: translate(0, 0) scale(1); } 
+        }
+        @keyframes orbFloat2 { 
+            0% { transform: translate(0, 0) scale(1); } 
+            50% { transform: translate(-10vw, -10vh) scale(1.2); } 
+            100% { transform: translate(0, 0) scale(1); } 
+        }
+        .orb { position: fixed; border-radius: 50%; filter: blur(150px); z-index: -1; opacity: 0.3; }
+        .orb-1 { width: 50vw; height: 50vw; background: #FF3E15; top: -10%; left: -10%; animation: orbFloat1 20s infinite ease-in-out; }
+        .orb-2 { width: 60vw; height: 60vw; background: #8B6A47; bottom: -20%; right: -10%; animation: orbFloat2 25s infinite ease-in-out; }
+
+        /* --- LAYOUT ANIMATIONS --- */
+        .reveal-up { opacity: 0; transform: translateY(60px); transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal-up.active { opacity: 1; transform: translateY(0); }
+        .dot { display: inline-block; width: 0.15em; height: 0.15em; background-color: #FF3E15; border-radius: 50%; margin-left: 2px; }
+
+        /* --- ACCORDION EXPANSION MAGIC --- */
+        /* We use CSS Grid fr units to smoothly animate height from 0 to auto */
+        .accordion-grid {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .accordion-grid.open {
+            grid-template-rows: 1fr;
+        }
+        .accordion-inner {
+            overflow: hidden;
+        }
+
+        /* --- TYPOGRAPHY EFFECTS --- */
+        .text-outline { -webkit-text-stroke: 1px rgba(255,255,255,0.2); color: transparent; transition: all 0.5s ease; }
+        .row-hover:hover .text-outline { -webkit-text-stroke: 1px #FF3E15; color: transparent; }
+        .row-open .text-outline { -webkit-text-stroke: 1px #FF3E15; color: #FF3E15; }
+
+        .title-transition { transition: color 0.5s ease, transform 0.5s ease; }
+        .row-hover:hover .title-transition { transform: translateX(20px); }
+        .row-open .title-transition { color: #FF3E15; transform: translateX(20px); }
+
+        /* The plus/minus icon spin */
+        .icon-spin { transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .row-open .icon-spin { transform: rotate(135deg); color: #FF3E15; }
+
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- CUSTOM HOOK FOR SCROLL REVEAL ---
+        const useReveal = () => {
+            const ref = useRef(null);
+            useEffect(() => {
+                const observer = new IntersectionObserver(([entry]) => {
+                    if (entry.isIntersecting) entry.target.classList.add('active');
+                }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+                if (ref.current) observer.observe(ref.current);
+                return () => observer.disconnect();
+            }, []);
+            return ref;
+        };
+
+        const Reveal = ({ children, className = "", delay = "0s" }) => {
+            const ref = useReveal();
+            return <div ref={ref} className={`reveal-up ${className}`} style={{ transitionDelay: delay }}>{children}</div>;
+        };
+
+        // --- COMPONENTS ---
+        const Navbar = () => (
+            <nav className="absolute w-full z-50 top-0 py-6 px-8 flex justify-between items-center text-white blend-difference">
+                <div className="flex gap-8 text-xs uppercase tracking-widest font-semibold hidden md:flex">
+                    <a href="home.html" className="hover:text-brand-accent transition-colors">Home</a>
+                    <a href="course.html" className="hover:text-brand-accent transition-colors">Courses</a>
+                </div>
+                <div className="flex items-center">
+                    <a href="home.html" className="cursor-pointer">
+                        <img src="../images/logo.png" alt="Arabica Brew logo" className="h-32 w-auto max-h-full object-contain" />
+                    </a>
+                </div>
+                <div className="flex gap-8 text-xs uppercase tracking-widest font-semibold hidden md:flex">
+                    <a href="aboutus.html" className="hover:text-brand-accent transition-colors">About</a>
+                    <a href="#" className="hover:text-brand-accent transition-colors">Contact</a>
+                </div>
+            </nav>
+        );
+
+        // --- COURSE DATA ---
+        const coursesData = [
+            {
+                id: "basic",
+                title: "Basic Foundation",
+                duration: "15 Days | 2 Hrs/Day",
+                topics: [
+                    "Definition and responsibilities of a Barista",
+                    "Basic knowledge of the coffee industry",
+                    "Espresso machine operation",
+                    "Tools and equipment of a coffee bar",
+                    "Australian, Italian, Universal recipes",
+                    "Basic latte art techniques"
+                ]
+            },
+            {
+                id: "special",
+                title: "Specialist Brew",
+                duration: "30 Days | 2 Hrs/Day",
+                topics: [
+                    "All Basic Course Modules included",
+                    "History of coffee and espresso machines",
+                    "Advanced beverage recipes (hot, cold, alternative)",
+                    "Farm-to-cup concept & sourcing",
+                    "Advanced latte art techniques",
+                    "Customer service essentials",
+                    "Industry Internships"
+                ]
+            },
+            {
+                id: "advanced",
+                title: "Advanced Masterclass",
+                duration: "45 Days | 2 Hrs/Day",
+                topics: [
+                    "All Specialist Course Modules included",
+                    "Advanced art: Heart, Tulip, Rosetta, Swan",
+                    "Coffee bean varieties, roasting, and tasting",
+                    "Aromas and flavor profiling",
+                    "Menu planning and speed tests",
+                    "Third-wave coffee culture and brewing systems",
+                    "Bubble tea making & alternative beverages",
+                    "HACCP and service classes",
+                    "International Job Placement"
+                ]
+            }
+        ];
+
+        // --- GIANT ACCORDION ROW COMPONENT ---
+        const CourseRow = ({ course, index, isOpen, onClick }) => {
+            return (
+                <div className={`border-b border-white/10 ${isOpen ? 'row-open' : ''} row-hover group`}>
+                    
+                    {/* ROW HEADER (Clickable) */}
+                    <div 
+                        className="py-10 md:py-16 px-4 md:px-8 flex flex-col md:flex-row md:items-center justify-between cursor-pointer"
+                        onClick={onClick}
+                    >
+                        {/* Number & Title */}
+                        <div className="flex items-center gap-6 md:gap-12">
+                            <span className="text-4xl md:text-7xl font-black tracking-tighter text-outline hidden sm:block">
+                                0{index + 1}
+                            </span>
+                            <h2 className="text-4xl md:text-[6vw] font-black tracking-tightest uppercase text-white title-transition leading-none">
+                                {course.title}
+                            </h2>
+                        </div>
+
+                        {/* Duration & Icon */}
+                        <div className="flex items-center justify-between md:justify-end gap-12 mt-6 md:mt-0">
+                            <p className="text-brand-textGray text-xs md:text-sm font-bold uppercase tracking-widest text-right">
+                                {course.duration.split('|')[0]}<br className="hidden md:block"/>
+                                <span className="md:hidden"> | </span>
+                                {course.duration.split('|')[1]}
+                            </p>
+                            
+                            {/* Animated Plus/Cross Icon */}
+                            <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center icon-spin shrink-0">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ROW BODY (Expands smoothly) */}
+                    <div className={`accordion-grid ${isOpen ? 'open' : ''}`}>
+                        <div className="accordion-inner">
+                            <div className="px-4 md:px-8 pb-16 pt-4 flex flex-col xl:flex-row gap-16 xl:gap-32 ml-0 sm:ml-[6rem] md:ml-[8rem]">
+                                
+                                <div className="xl:w-1/4">
+                                    <h3 className="text-xl font-bold mb-6 text-brand-accent">Syllabus Highlights</h3>
+                                    <p className="text-brand-textwhite text-sm font-medium leading-relaxed mb-8">
+                                        An intensive, hands-on curriculum designed to take you from foundational understanding to elite barista execution.
+                                    </p>
+                                </div>
+
+                                {/* Columns for Syllabus items */}
+                                <div className="xl:w-3/4 columns-1 md:columns-2 gap-x-16 gap-y-4">
+                                    {course.topics.map((topic, i) => (
+                                        <div key={i} className="flex items-start gap-4 mb-6 break-inside-avoid">
+                                            <span className="text-brand-textGray/50 font-black text-xl leading-none mt-1 shrink-0">
+                                                {(i + 1).toString().padStart(2, '0')}
+                                            </span>
+                                            <p className="text-white font-medium text-lg leading-snug">
+                                                {topic}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            );
+        };
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            const [loaded, setLoaded] = useState(false);
+            // Default open the first course
+            const [openCourseId, setOpenCourseId] = useState(coursesData[0].id);
+
+            useEffect(() => { setTimeout(() => setLoaded(true), 100); }, []);
+
+            const toggleCourse = (id) => {
+                setOpenCourseId(prev => prev === id ? null : id);
+            };
+
+            return (
+                <div className="relative min-h-screen font-sans selection:bg-brand-accent selection:text-white pb-20">
+                    
+                    {/* AMBIENT BACKGROUND ANIMATIONS */}
+                    <div className="bg-noise"></div>
+                    <div className="orb orb-1"></div>
+                    <div className="orb orb-2"></div>
+
+                    <Navbar />
+
+                    {/* 1. CINEMATIC TEXT HERO */}
+                    <section className="relative pt-60 pb-20 px-4 md:px-8 max-w-[1800px] mx-auto">
+                        <div className={`z-10 transition-all duration-1000 delay-300 ${loaded ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
+                            <p className="text-brand-accent font-bold uppercase tracking-widest text-sm mb-6 ml-1">
+                                Arabica Brew Coffee
+                            </p>
+                            <h1 className="text-[12vw] md:text-[9vw] leading-[0.85] tracking-tightest font-black uppercase text-white mb-8">
+                                The Master<br/>Syllabus<span className="dot"></span>
+                            </h1>
+                            <p className="text-lg md:text-2xl font-medium text-brand-textGray max-w-3xl">
+                                Learn from the best and turn your passion into a career. Our text-book accurate, industry-leading curriculums are designed to create elite professionals.
+                            </p>
+                        </div>
+                    </section>
+
+                    {/* 2. THE GIANT ACCORDION CURRICULUM */}
+                    <section className="w-full border-t border-white/10 mt-10 relative z-10">
+                        {coursesData.map((course, index) => (
+                            <Reveal key={course.id} delay={`${index * 0.1}s`}>
+                                <CourseRow 
+                                    course={course} 
+                                    index={index} 
+                                    isOpen={openCourseId === course.id}
+                                    onClick={() => toggleCourse(course.id)}
+                                />
+                            </Reveal>
+                        ))}
+                    </section>
+
+                    {/* 3. BIG FOOTER CTA */}
+                    <footer className="relative z-10 text-white pt-10 pb-5 px-8 md:px-16 flex flex-col justify-between mt-20">
+                        <Reveal>
+                            <h2 className="text-[10vw] leading-[0.8] tracking-tightest font-black uppercase mb-6 text-center md:text-left">
+                                Ready to brew?<br/>
+                                <span className="text-brand-accent">Join us today.</span>
+                            </h2>
+                        </Reveal>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 border-t border-white/20 pt-12 max-w-[1600px] mx-auto w-full">
+                            <div className="col-span-1 md:col-span-2">
+                                <img src="../images/logo.png" alt="Arabica Brew logo" className="h-32 w-auto max-h-full object-contain mb-4" />
+                                <p className="text-brand-textGray text-sm font-medium max-w-sm">The premier coffee school dedicated to cultivating a new generation of skilled baristas.</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-xs uppercase tracking-widest mb-6 text-white/50">Office</h3>
+                                <p className="font-medium text-sm mb-2 text-brand-textGray">Devasthal Marga, Kathmandu</p>
+                                <p className="font-medium text-sm mb-4 text-brand-textGray">Koteshwor Chowk 44600</p>
+                                <a className="font-medium text-sm hover:text-brand-accent transition-colors block mb-2">arabicabrewcoffee5@gmail.com</a>
+                                <p className="font-medium text-sm">+977 9865991279</p>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-xs uppercase tracking-widest mb-6 text-white/50">Social</h3>
+                                <div className="flex flex-col gap-3 font-medium text-sm">
+                                    <a href="https://www.instagram.com/arabica_brew_coffee_school/" className="hover:text-brand-accent transition-colors" target="_blank" rel="noopener noreferrer">Instagram</a>
+                                    <a href="https://www.facebook.com/arabika.bru.kaphi.skula" className="hover:text-brand-accent transition-colors" target="_blank" rel="noopener noreferrer">Facebook</a>
+                                    <a href="https://www.tiktok.com/@arabicabrewcoffeeschool" className="hover:text-brand-accent transition-colors" target="_blank" rel="noopener noreferrer">Tiktok</a>
+                                    <a href="https://www.youtube.com/@ArabicaBrewCoffeeSchool/videos" className="hover:text-brand-accent transition-colors" target="_blank" rel="noopener noreferrer">YouTube</a>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
