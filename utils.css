@@ -1,0 +1,53 @@
+:root {
+  --background-color: #fbf9ef;
+  --green: #658352;
+  --black: #1e2203;
+  --brown: #c9b9a2;
+  --dark-brown: #b7a976;
+  --link-padding: 0.5rem;
+  --link-margin: 0.5rem;
+  --font-title: "STIX Two Text";
+  --font-normal: "Noto Sans";
+  --font-small: "Arial, sans-serif";
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.button {
+  border-radius: 50px;
+  font-size: 1em;
+  font-weight: bold;
+  padding: 0.6rem 1.6rem;
+  font-family: var(--font-normal);
+  border: 2px solid var(--green);
+}
+
+.button-primary {
+  color: var(--background-color);
+  background-color: var(--green);
+}
+
+.button-secondary {
+  color: var(--green);
+  background-color: var(--background-color);
+}
