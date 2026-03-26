@@ -9,10 +9,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="../images/logo.png" />
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+
+
         tailwind.config = {
             theme: {
                 extend: {
@@ -40,6 +43,7 @@
     <!-- React, ReactDOM, Babel -->
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
@@ -125,8 +129,12 @@
 </head>
 <body>
     <div id="root"></div>
+    <canvas id="cursor-canvas"></canvas>
+    <div id="cursor-ring"></div>
 
     <script type="text/babel">
+
+
         const { useState, useEffect, useRef } = React;
 
         // --- CUSTOM HOOK FOR SCROLL REVEAL ---
@@ -347,7 +355,7 @@
                     <Navbar />
 
                     {/* 1. CINEMATIC HERO */}
-                    <section className="relative h-screen flex flex-col justify-center items-center overflow-hidden px-4 z-10 pt-40">
+                    <section className="relative h-full flex flex-col justify-center items-center overflow-hidden px-4 z-10 pt-60">
                         <div className={`z-10 text-center transition-all duration-1000 delay-300 ${heroLoaded ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
                             <p className="text-brand-accent font-bold uppercase tracking-widest text-sm mb-6">
                                 Arabica Brew Coffee
@@ -361,15 +369,10 @@
                                 Perfectly aligned creative and technical expertise to increase your coffee mastery.
                             </p>
                         </div>
-
-                        <div className="absolute bottom-[-30px] text-brand-textGray text-xs uppercase tracking-widest font-semibold flex flex-col items-center gap-4">
-                            <span>Scroll</span>
-                            <div className="w-[1px] h-16 bg-gradient-to-b from-brand-textGray to-transparent"></div>
-                        </div>
                     </section>
 
                     {/* 2. INTRO STATEMENT */}
-                    <section className="py-32 px-8 md:px-16 max-w-[1600px] mx-auto relative z-10">
+                    <section className="py-60 px-8 md:px-16 max-w-[1600px] mx-auto relative z-10">
                         <Reveal>
                             <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] text-white mb-16">
                                 From foundation to flawless execution<span className="dot"></span>
